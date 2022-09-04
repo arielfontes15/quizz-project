@@ -1,25 +1,73 @@
 <template>
+
   <div class="menu">
-    <h1 v-html="this.question"></h1>
-    <div>
-      <input type="radio" name="options" value="True">
-      <label>True</label><br>
-      <input type="radio" name="options" value="False">
-      <label>False</label><br>
-    </div>
-    <button class="btnEnviar">Enviar</button>
+    <PlacarQuizz
+      :countCorrect="this.countCorrect"
+      :countIncorrect="this.countIncorrect"
+    >
+    </PlacarQuizz>
+    <template v-if="this.question">
+      <h1 v-html="this.question"></h1>
+      <div>
+        <template v-for="(answer, key) in this.answers" :key="key">
+          <input 
+            :disabled="this.answerSubmitted"
+            type="radio"
+            name="options"
+            :value="answer"
+            v-model="chosenAnswer"
+          >
+          <label :for="answer" v-html="answer"></label><br>
+        </template>
+      </div>
+      <button
+        v-if="!this.answerSubmitted"
+        @click="submitAnswer()"
+        class="btnEnviar"
+        type="button"
+      >Enviar</button>
+
+      <section
+        v-if="this.answerSubmitted"
+        class="result"
+      >
+        <h4
+          v-if="this.correctanswer == this.chosenAnswer"
+          v-html="'⭕ Congratulations you got it right, click on the button for the next question.'"
+        >
+        </h4>
+        <h4
+          v-else
+          v-html="`❌ I'm sorry, you picked the wrong answer. The correct is '${this.correctanswer.toUpperCase()}'`"
+        >
+        </h4>
+        <button
+          class="btnEnviar"
+          type="button"
+          @click="getDataSource()"
+        >Next question</button>
+      </section>
+    </template>
   </div>
 </template>
 
 <script>
+import PlacarQuizz from "@/components/PlacarQuizz.vue"
 
 export default {
   name: 'App',
+  components: {
+    PlacarQuizz
+  },
   data() {
     return {
       question: undefined,
       incorrectanswers: undefined,
-      correctanswer: undefined
+      correctanswer: undefined,
+      chosenAnswer: undefined,
+      answerSubmitted: false,
+      countIncorrect: 0,
+      countCorrect: 0
     }
   },
   created() {
@@ -38,10 +86,28 @@ export default {
         this.incorrectanswers = response.data.results[0].incorrect_answers;
         this.correctanswer = response.data.results[0].correct_answer;
       })
+      //Redefinindo algumas propriedades antes de pegar meu dados da API
+      this.answerSubmitted = false;
+      this.chosenAnswer = null;
+      this.question = null;
     },
     //Shuffle utilizado para randomizar as respostas
     shuffle(array) {
       array.sort(() => Math.random() - 0.5);
+    },
+    submitAnswer(){
+      if(!this.chosenAnswer){
+        window.alert('Pick one of the options');
+      }else{
+        this.answerSubmitted = true;
+        if(this.chosenAnswer.includes(this.correctanswer)){
+          this.countCorrect++;
+          console.log('You got it!')
+        }else{
+          this.countIncorrect++;
+          console.log('You got it wrong!')
+        }
+      }
     }
   },
   computed: {
@@ -70,10 +136,25 @@ body {
   -moz-osx-font-smoothing: grayscale;
   text-align: center;
   color: #0b0d0f;
-  // margin: 60px auto;
-  // max-width: 960px;
   width: 100%;
   height: 100vh;
+
+  .placar{
+    margin: 20px;
+    height: 80px;
+    div span {
+      position:absolute;
+      top:50%;
+      left:50%;
+      transform:translate(-50%,-50%)
+    }
+    
+    .itensPlacar{
+        color: bold;
+        font-size: 1.5rem;
+        display: block;
+    }
+  }
 
   .menu {
     background: linear-gradient(#5896d3, rgb(182,153, 153));
@@ -85,7 +166,7 @@ body {
       box-shadow: rgba(0, 0, 0, 0.5);
       border: none;
       width: 150px;
-      height: 30px;
+      height: 35px;
       border-radius: 4px;
       cursor: pointer;
       margin: 20px auto;
